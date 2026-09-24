@@ -35,10 +35,11 @@ You don't need to set any environment variables. Render provides `PORT` automati
 - Bulk buy calculator that works out the cheapest way to fill N units across bazaars and highlights which bazaars to buy from
 - Selling helper with undercut and market-value prices you can copy
 - Browse and Deals tables you can sort, with filters for minimum market value, minimum number of bazaars and category
+- **💵 The Buck Stops Here:** lists every item in player bazaars priced at **$1** (you can raise the filter to $10, $100 or $1,000). It reads Torn's official bazaar directory, starting with the *Dollar Sale* and *Bargain* lists, then checks each of those bazaars through the Torn API. Turn on Deep scan to add the other directory lists and all 24 category directories. You can also add player IDs to check. Needs a Torn API key (Public works; Limited returns fresher data). Requests are limited to about 85 per minute to stay under Torn's limit of 100.
 - Watchlist with target prices that shows **BUY ✓** when a bazaar hits your target
 - Optional Torn API key (Public is fine) to compare with the official Item Market and to filter by category
 - Optional 30s auto-refresh
 
 ## Data
 - Bazaar listings: TornW3B public API (`weav3r.dev/api/marketplace`). The server caches the item list for 60s and each item for 20s.
-- Item Market and categories: official Torn API v2 (`/market/{id}/itemmarket`, `/torn/items`). Calls go straight from the browser, and the key is stored only in localStorage.
+- Item Market, categories and $1 scanning: official Torn API (`/v2/market/{id}/itemmarket`, `/v2/torn/items`, `/v2/market/bazaar`, `/user/{id}?selections=bazaar`). Calls go straight from the browser, and the key is stored only in localStorage.

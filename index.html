@@ -115,6 +115,12 @@
   .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
   .dot{width:8px;height:8px;border-radius:50%;background:#666} .dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
   input.tgt{width:110px;background:#141414;border:1px solid var(--line);border-radius:6px;padding:4px 6px;text-align:right}
+  .prog{height:8px;background:#141414;border-radius:4px;overflow:hidden;border:1px solid var(--line);margin:8px 0}
+  .prog > div{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));transition:width .3s}
+  .buckhero{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .buckhero .big{font-size:40px;line-height:1}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px}
+  .pill.o{background:#85b20026;color:var(--green2)} .pill.c{background:#e0584f22;color:#ff7b72}
   footer{color:#666;font-size:12px;text-align:center;padding:20px}
 </style>
 </head>
@@ -131,6 +137,7 @@
       <a href="#/" data-tab="home">🏠 <span>Home</span></a>
       <a href="#/browse" data-tab="browse">📋 <span>Browse</span></a>
       <a href="#/deals" data-tab="deals">💸 <span>Deals</span></a>
+      <a href="#/buck" data-tab="buck">💵 <span>Buck Stops Here</span></a>
       <a href="#/watch" data-tab="watch">⭐ <span>Watchlist</span></a>
     </nav>
     <button class="iconbtn" title="Settings / API key" onclick="openSettings()">⚙️</button>
@@ -283,7 +290,7 @@ document.addEventListener("keydown", e => { if (e.key === "/" && document.active
 async function route(){
   clearInterval(S.timer); S.timer = null;
   const h = location.hash || "#/";
-  const tab = h.startsWith("#/browse") ? "browse" : h.startsWith("#/deals") ? "deals" : h.startsWith("#/watch") ? "watch" : h.startsWith("#/item") ? "" : "home";
+  const tab = h.startsWith("#/browse") ? "browse" : h.startsWith("#/deals") ? "deals" : h.startsWith("#/watch") ? "watch" : h.startsWith("#/buck") ? "buck" : h.startsWith("#/item") ? "" : "home";
   document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
   const v = $("#view");
   try {
@@ -293,6 +300,7 @@ async function route(){
     if (tab === "browse") return viewBrowse(false);
     if (tab === "deals") return viewBrowse(true);
     if (tab === "watch") return viewWatch();
+    if (tab === "buck") return viewBuck();
     return viewHome();
   } catch (e) {
     v.innerHTML = `<div class="panel empty">⚠️ Couldn't load bazaar data (${esc(e.message)}).<br><br><button class="btn primary" onclick="route()">Retry</button></div>`;
@@ -580,6 +588,214 @@ function renderMarket(id, st){
     ${ls.slice(0, 8).map(l => `<tr><td class="num">${l.amount.toLocaleString()}</td><td class="num">${money(l.price)}</td><td class="num">${pctPill(pct(l.price, st.data.market_price))}</td></tr>`).join("")}
     </tbody></table><div class="small muted" style="margin-top:6px">Cached ${ago(m.cache_timestamp)} · <a href="${marketUrl(id)}" target="_blank" rel="noopener">open market ↗</a></div>`
     : `<div class="small muted">No Item Market listings.</div>`;
+}
+
+
+/* ============================ The Buck Stops Here ($1 listings) ============================ */
+// TornW3B hides $1 listings, so we scan bazaars directly with the user's Torn API key:
+//   1) Torn's official bazaar directory (/v2/market/bazaar) -> "dollar_sale" leaderboard (+ bargain, + optional deep lists)
+//   2) Each bazaar's contents (/user/{id}?selections=bazaar), keeping anything priced <= $1,000 (filterable)
+const BK_CATS = ["Alcohol","Artifact","Booster","Candy","Car","Clothing","Collectible","Defensive","Drug","Energy Drink","Enhancer","Flower","Jewelry","Material","Medical","Melee","Other","Plushie","Primary","Secondary","Special","Supply Pack","Temporary","Tool"];
+const BK_LISTS = { dollar_sale: "💵 Dollar sales", bargain: "🏷️ Bargains", busiest: "👥 Busiest", most_popular: "❤️ Most popular", trending: "📈 Trending", top_grossing: "💰 Top grossing", bulk: "📦 Bulk", advanced_item: "⚔️ Advanced items" };
+const saved = JSON.parse(localStorage.getItem("tbf_buck") || "null");
+const BK = {
+  running: false, stop: false, phase: "", done: 0, total: 0, errors: 0,
+  results: saved?.results || [], bazaars: saved?.bazaars || [], t: saved?.t || 0,
+  maxPrice: +(localStorage.getItem("tbf_buck_max") || 1),
+  deep: localStorage.getItem("tbf_buck_deep") === "1",
+  openOnly: localStorage.getItem("tbf_buck_open") !== "0",
+  extra: localStorage.getItem("tbf_buck_extra") || "",
+  sort: "value",
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let lastCall = 0;
+async function throttle(){ const gap = 700 - (Date.now() - lastCall); if (gap > 0) await sleep(gap); lastCall = Date.now(); } // ~85 calls/min (Torn limit is 100)
+async function tornRaw(url){
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await throttle();
+    const d = await getJSON(url + (url.includes("?") ? "&" : "?") + `key=${encodeURIComponent(S.key)}&comment=BazaarFinder`);
+    if (!d.error) return d;
+    if (d.error.code === 5) { BK.phase = "Rate limited by Torn — pausing 30s…"; drawBuck(); await sleep(30000); continue; }
+    const e = new Error(d.error.error || "Torn API error"); e.code = d.error.code; throw e;
+  }
+  throw new Error("Rate limited");
+}
+function saveBuck(){ localStorage.setItem("tbf_buck", JSON.stringify({ t: BK.t, results: BK.results, bazaars: BK.bazaars })); }
+
+async function buckScan(){
+  if (!S.key) return openSettings();
+  if (BK.running) { BK.stop = true; return; }
+  Object.assign(BK, { running: true, stop: false, done: 0, total: 0, errors: 0, results: [], bazaars: [], phase: "Reading Torn's bazaar directory…" });
+  drawBuck();
+  const pool = new Map(); // id -> bazaar info
+  const add = (arr, src, statKey) => (arr || []).forEach(b => {
+    if (!b || !b.id) return;
+    const e = pool.get(b.id) || { id: b.id, name: b.name, is_open: b.is_open, sources: [], dollar_sales: null };
+    if (!e.sources.includes(src)) e.sources.push(src);
+    if (statKey === "dollar_sales") e.dollar_sales = b.dollar_sales;
+    pool.set(b.id, e);
+  });
+  try {
+    const d = await tornRaw("https://api.torn.com/v2/market/bazaar");
+    const w = d.bazaar || {};
+    add(w.dollar_sale, BK_LISTS.dollar_sale, "dollar_sales");
+    add(w.bargain, BK_LISTS.bargain);
+    if (BK.deep) {
+      for (const k of Object.keys(BK_LISTS)) if (k !== "dollar_sale" && k !== "bargain") add(w[k], BK_LISTS[k]);
+      for (const c of BK_CATS) {
+        if (BK.stop) break;
+        BK.phase = `Reading specialized directory: ${c}…`; drawBuck();
+        try { const s = await tornRaw(`https://api.torn.com/v2/market/bazaar?cat=${encodeURIComponent(c)}`); add(s.bazaar?.specialized, "🗂️ " + c); }
+        catch (e) { if (e.code === 2) throw e; BK.errors++; }
+      }
+    }
+  } catch (e) {
+    BK.running = false; BK.phase = "⚠️ " + (e.code === 2 ? "Your API key was rejected — check it in settings." : "Couldn't read bazaar directory: " + e.message);
+    return drawBuck();
+  }
+  BK.extra.split(/[^\d]+/).filter(Boolean).forEach(id => add([{ id: +id, name: "Player " + id, is_open: null }], "✍️ Added by you"));
+
+  let list = [...pool.values()];
+  if (BK.openOnly) list = list.filter(b => b.is_open !== false);
+  list.sort((a, b) => (b.dollar_sales || 0) - (a.dollar_sales || 0));
+  BK.bazaars = list.map(b => ({ ...b, scanned: false, items: 0 }));
+  BK.total = list.length;
+
+  for (const b of BK.bazaars) {
+    if (BK.stop) break;
+    BK.phase = `Scanning ${b.name}'s bazaar…`; drawBuck();
+    try {
+      const d = await tornRaw(`https://api.torn.com/user/${b.id}?selections=bazaar,profile`);
+      if (d.name) b.name = d.name;
+      const raw = Array.isArray(d.bazaar) ? d.bazaar : Object.values(d.bazaar || {});
+      b.scanned = true; b.count = raw.length;
+      for (const it of raw) {
+        const price = +(it.price ?? it.cost ?? 0), id = +(it.ID ?? it.id ?? it.item_id ?? 0);
+        if (!price || price > 1000) continue;
+        b.items++;
+        BK.results.push({
+          item_id: id, name: it.name || S.byId.get(id)?.item_name || "Item #" + id, type: it.type || catOf(id) || "",
+          qty: +(it.quantity ?? it.amount ?? 1), price, uid: it.UID ?? it.uid ?? null,
+          mv: +(it.market_price ?? S.byId.get(id)?.market_price ?? 0),
+          player_id: b.id, player_name: b.name, is_open: b.is_open, t: Math.floor(Date.now() / 1000),
+        });
+      }
+    } catch (e) {
+      if (e.code === 2) { BK.phase = "⚠️ API key rejected."; break; }
+      b.error = e.message; BK.errors++;
+    }
+    BK.done++; BK.t = Date.now(); saveBuck(); drawBuck();
+  }
+  BK.running = false;
+  BK.phase = BK.stop ? `Stopped — scanned ${BK.done} of ${BK.total} bazaars.` : `Scan complete — ${BK.done} bazaars checked.`;
+  BK.t = Date.now(); saveBuck(); drawBuck();
+  const n = BK.results.filter(r => r.price <= 1).length;
+  toast(n ? `💵 Found ${n} item${n === 1 ? "" : "s"} for $1!` : "Scan finished — no $1 items right now");
+}
+
+function viewBuck(){
+  $("#view").innerHTML = `
+    <div class="panel">
+      <div class="buckhero">
+        <div class="big">💵</div>
+        <div style="flex:1;min-width:240px">
+          <h2 style="margin:0">The Buck Stops Here</h2>
+          <div class="muted small">Every item currently listed for <b>$1</b> in player bazaars. Pulls Torn's official <b>Dollar Sale</b> bazaar directory, then checks each bazaar's contents live.</div>
+        </div>
+        <button class="btn primary" id="bkgo"></button>
+      </div>
+      <div id="bkctl"></div>
+    </div>
+    <div id="bkbody"></div>`;
+  $("#bkgo").onclick = buckScan;
+  drawBuck();
+}
+function drawBuck(){
+  if (!location.hash.startsWith("#/buck") || !$("#bkbody")) return;
+  const btn = $("#bkgo");
+  btn.textContent = BK.running ? "■ Stop scan" : BK.results.length || BK.t ? "↻ Rescan" : "▶ Start scan";
+  btn.classList.toggle("primary", !BK.running);
+
+  if (!S.key) {
+    $("#bkctl").innerHTML = "";
+    $("#bkbody").innerHTML = `<div class="panel empty">🔒 This tab needs a Torn API key (a <b>Public</b> key works; <b>Limited</b> gives fresher bazaar data).<br><br>
+      <span class="small">Why? TornW3B hides $1 listings, so bazaars are scanned directly through the official Torn API.</span><br><br>
+      <button class="btn primary" onclick="openSettings()">Add API key</button></div>`;
+    return;
+  }
+
+  const pctDone = BK.total ? Math.round(BK.done / BK.total * 100) : 0;
+  const eta = BK.running && BK.total ? Math.ceil((BK.total - BK.done) * 0.7) : 0;
+  if (!$("#bkmax")) {
+    $("#bkctl").innerHTML = `
+      <div class="controls" style="margin:14px 0 0">
+        <label>Show items priced <select class="f" id="bkmax">
+          ${[[1, "exactly $1"], [10, "≤ $10"], [100, "≤ $100"], [1000, "≤ $1,000"]].map(([v, l]) => `<option value="${v}" ${v === BK.maxPrice ? "selected" : ""}>${l}</option>`).join("")}
+        </select></label>
+        <label title="Also scan the busiest / popular / trending lists and all 24 specialized category directories. Finds more, takes a few minutes."><input type="checkbox" id="bkdeep" ${BK.deep ? "checked" : ""}/> Deep scan</label>
+        <label><input type="checkbox" id="bkopen" ${BK.openOnly ? "checked" : ""}/> Open bazaars only</label>
+        <label style="flex:1;min-width:220px">Extra player IDs <input class="f" id="bkextra" style="flex:1" placeholder="e.g. 2114440, 1195734" value="${esc(BK.extra)}" /></label>
+      </div>
+      <div id="bkprog"></div>`;
+    $("#bkmax").onchange = e => { BK.maxPrice = +e.target.value; localStorage.setItem("tbf_buck_max", BK.maxPrice); drawBuck(); };
+    $("#bkdeep").onchange = e => { BK.deep = e.target.checked; localStorage.setItem("tbf_buck_deep", BK.deep ? "1" : "0"); };
+    $("#bkopen").onchange = e => { BK.openOnly = e.target.checked; localStorage.setItem("tbf_buck_open", BK.openOnly ? "1" : "0"); drawBuck(); };
+    $("#bkextra").onchange = e => { BK.extra = e.target.value; localStorage.setItem("tbf_buck_extra", BK.extra); };
+  }
+  $("#bkprog").innerHTML = BK.running || BK.phase ? `
+    <div class="prog"><div style="width:${BK.running && !BK.total ? 5 : pctDone}%"></div></div>
+    <div class="small muted" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <span>${esc(BK.phase)}</span>
+      <span>${BK.total ? `${BK.done}/${BK.total} bazaars` : ""}${BK.errors ? ` · ${BK.errors} errors` : ""}${eta ? ` · ~${eta < 60 ? eta + "s" : Math.ceil(eta / 60) + "m"} left` : ""}</span>
+    </div>` : (BK.t ? `<div class="small muted" style="margin-top:8px">Last scan ${ago(BK.t / 1000)} · ${BK.bazaars.filter(b => b.scanned).length} bazaars checked</div>` : "");
+
+  // W3B summary may occasionally report $1 items too (no key needed)
+  const w3 = S.items.filter(i => i.lowest_price && i.lowest_price <= BK.maxPrice);
+  let rows = BK.results.filter(r => r.price <= BK.maxPrice && (!BK.openOnly || r.is_open !== false));
+  const sorters = { value: (a, b) => b.mv * b.qty - a.mv * a.qty, mv: (a, b) => b.mv - a.mv, name: (a, b) => a.name.localeCompare(b.name), qty: (a, b) => b.qty - a.qty, price: (a, b) => a.price - b.price };
+  rows.sort(sorters[BK.sort] || sorters.value);
+  const totalVal = rows.reduce((s, r) => s + r.mv * r.qty, 0), totalCost = rows.reduce((s, r) => s + r.price * r.qty, 0);
+  const label = BK.maxPrice === 1 ? "$1" : "≤ " + money(BK.maxPrice);
+
+  $("#bkbody").innerHTML = `
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <h2 style="margin:0">${rows.length} listing${rows.length === 1 ? "" : "s"} at ${label}</h2>
+        ${rows.length ? `<div class="small muted">Buy everything for <b class="green">${money(totalCost)}</b> · worth <b>${short(totalVal)}</b> at market value</div>` : ""}
+      </div>
+      ${rows.length ? `<div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th style="width:60px"></th>
+          <th class="sort ${BK.sort === "name" ? "asc" : ""}" data-bs="name">Item</th>
+          <th class="sort num ${BK.sort === "qty" ? "desc" : ""}" data-bs="qty">Qty</th>
+          <th class="sort num ${BK.sort === "price" ? "asc" : ""}" data-bs="price">Price</th>
+          <th class="sort num ${BK.sort === "mv" ? "desc" : ""}" data-bs="mv">Market value</th>
+          <th class="sort num ${BK.sort === "value" ? "desc" : ""}" data-bs="value">Total value</th>
+          <th>Seller</th><th>Seen</th><th></th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td>${imgTag(r.item_id)}</td>
+          <td><a href="#/item/${r.item_id}">${esc(r.name)}</a> <span class="muted small">${esc(r.type)}${r.uid ? " · uid " + esc(r.uid) : ""}</span></td>
+          <td class="num">${r.qty.toLocaleString()}</td>
+          <td class="num"><b class="green">${money(r.price)}</b></td>
+          <td class="num muted">${money(r.mv)}</td>
+          <td class="num">${short(r.mv * r.qty)}</td>
+          <td><a href="${profileUrl(r.player_id)}" target="_blank" rel="noopener">${esc(r.player_name)}</a> <span class="muted small">[${r.player_id}]</span>
+              ${r.is_open === false ? '<span class="pill c">closed</span>' : r.is_open ? '<span class="pill o">open</span>' : ""}</td>
+          <td class="small muted">${ago(r.t)}</td>
+          <td><a class="btn sm primary" href="${bazaarUrl(r.player_id)}" target="_blank" rel="noopener">Bazaar ↗</a></td></tr>`).join("")}
+        </tbody></table></div>
+        <div class="small muted" style="margin-top:8px">$1 items tend to go within seconds, and some sellers only mean them for friends or faction mates. The Seen column shows when each bazaar was checked.</div>`
+      : `<div class="empty">${BK.running ? "Scanning… results will appear here as they're found." : BK.t ? `No ${label} items in the ${BK.bazaars.filter(b => b.scanned).length} bazaars checked. $1 items sell fast, so try a rescan, <b>Deep scan</b>, or a higher price filter.` : "Press <b>▶ Start scan</b> to find $1 items."}</div>`}
+    </div>
+    ${w3.length ? `<div class="panel"><h3>📡 Also reported by TornW3B</h3><div class="cards">${w3.map(card).join("")}</div></div>` : ""}
+    ${BK.bazaars.length ? `<div class="panel"><details><summary>Bazaars in this scan (${BK.bazaars.length})</summary>
+      <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Bazaar</th><th>Found via</th><th class="num">$1 sales/wk</th><th class="num">Listings</th><th class="num">≤ $1k</th><th></th></tr></thead><tbody>
+      ${BK.bazaars.map(b => `<tr><td><a href="${bazaarUrl(b.id)}" target="_blank" rel="noopener">${esc(b.name)}</a> <span class="muted small">[${b.id}]</span> ${b.is_open === false ? '<span class="pill c">closed</span>' : ""}</td>
+        <td class="small muted">${esc(b.sources.join(", "))}</td><td class="num">${b.dollar_sales ?? "—"}</td>
+        <td class="num">${b.scanned ? b.count : b.error ? `<span class="red small" title="${esc(b.error)}">error</span>` : '<span class="muted">…</span>'}</td>
+        <td class="num ${b.items ? "green" : "muted"}">${b.scanned ? b.items : ""}</td>
+        <td><a class="btn sm" href="${bazaarUrl(b.id)}" target="_blank" rel="noopener">↗</a></td></tr>`).join("")}
+      </tbody></table></div></details></div>` : ""}`;
+  document.querySelectorAll("[data-bs]").forEach(th => th.onclick = () => { BK.sort = th.dataset.bs; drawBuck(); });
 }
 
 /* ============================ Settings ============================ */
