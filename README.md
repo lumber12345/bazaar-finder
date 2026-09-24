@@ -29,6 +29,11 @@ You don't need to set any environment variables. Render provides `PORT` automati
 
 > On the free plan, the service goes to sleep after about 15 minutes with no visitors. The first page load after that takes around 30 to 50 seconds while it starts back up.
 
+## Works on phone and PC
+- **Phone:** there's a tab bar along the bottom, a full-width search box, and tables become easy-to-tap cards. On the item page, the bulk buy calculator comes before the listings.
+- **PC:** the full layout, with columns you can sort.
+- **Install it like an app:** open the site on your phone, then use *Share → Add to Home Screen* on iPhone or *⋮ → Install app / Add to Home screen* on Android. It opens full-screen with its own icon.
+
 ## Features
 - Instant fuzzy item search with autocomplete (by name or item ID, press `/` to focus)
 - Item page showing the cheapest bazaar listings, the % difference from market value, how long ago each listing was updated, and one-click links to each bazaar

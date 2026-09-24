@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#222222" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="apple-mobile-web-app-title" content="Bazaar Finder" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-180.png" />
 <title>Torn Bazaar Finder</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2385b200'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%23111'%3E$%3C/text%3E%3C/svg%3E" />
 <style>
@@ -89,16 +96,20 @@
   .stat .s{font-size:12px;color:var(--muted)}
 
   .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-  @media(max-width:900px){.grid2{grid-template-columns:1fr} nav.tabs a span{display:none}}
-  @media(max-width:640px){.logo small,.logo .t{display:none} .hbar{gap:8px}}
+  nav.tabs a i{font-style:normal;margin-right:4px}
+  nav.tabs .sm{display:none}
+  .mobile-only{display:none !important}
+  @media(max-width:1080px) and (min-width:761px){ nav.tabs a span{display:none} nav.tabs a i{margin:0} }
+  @media(max-width:900px){ .grid2{grid-template-columns:1fr} }
+
 
   .calcout{margin-top:10px;background:#151515;border-radius:8px;padding:10px 12px;border:1px solid var(--line)}
   .calcout div{display:flex;justify-content:space-between;padding:2px 0}
   .empty{padding:40px 20px;text-align:center;color:var(--muted)}
   .spinner{width:28px;height:28px;border:3px solid #444;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#333;border:1px solid var(--green);padding:10px 18px;border-radius:8px;transition:.25s;z-index:100;box-shadow:0 8px 20px #000a}
-  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);opacity:0;visibility:hidden;pointer-events:none;background:#333;border:1px solid var(--green);padding:10px 18px;border-radius:8px;transition:.25s;z-index:100;box-shadow:0 8px 20px #000a}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible}
   .hero{text-align:center;padding:30px 10px 10px}
   .hero h1{font-size:28px} .hero p{color:var(--muted);max-width:620px;margin:6px auto 0}
   .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
@@ -122,6 +133,94 @@
   details summary{cursor:pointer;color:var(--muted);font-size:13px}
   .pill.o{background:#85b20026;color:var(--green2)} .pill.c{background:#e0584f22;color:#ff7b72}
   footer{color:#666;font-size:12px;text-align:center;padding:20px}
+  /* ======================= PHONE LAYOUT ======================= */
+  @media(max-width:760px){
+    html,body{font-size:15px}
+    .wrap{padding:0 10px}
+    .mobile-only{display:revert !important}
+    .desk-only{display:none !important}
+    header{padding-top:env(safe-area-inset-top)}
+    .hbar{flex-wrap:wrap;height:auto;gap:8px;padding:8px 10px 10px}
+    .logo{flex:1} .logo small{display:block}
+    .search{order:3;flex:1 1 100%;max-width:none}
+    .search input{height:44px;font-size:16px}
+    .search svg{top:14px}
+    .sugg{max-height:60vh} .sugg .row{padding:10px 12px}
+    .iconbtn{height:40px;width:40px;font-size:18px}
+
+    /* bottom tab bar */
+    nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:30;gap:0;justify-content:space-around;
+      background:#1f1f1fee;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid #000;
+      padding:4px 2px calc(4px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px #0008}
+    nav.tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px;border-radius:10px;font-size:11px;color:#bbb;min-width:0}
+    nav.tabs a i{font-size:21px;margin:0;line-height:1.1}
+    nav.tabs a span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    nav.tabs .lg{display:none !important} nav.tabs .sm{display:block}
+    nav.tabs a.on{background:none;color:var(--green2)}
+    nav.tabs a.on i{transform:scale(1.1)}
+    main{padding:12px 0 calc(90px + env(safe-area-inset-bottom))}
+    footer{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+    .toast{bottom:calc(80px + env(safe-area-inset-bottom));max-width:90vw;text-align:center}
+
+    .panel{padding:12px;border-radius:12px;margin-bottom:12px}
+    h2{font-size:17px}
+    input.f,select.f,input.tgt{font-size:16px;min-height:40px}
+    .btn{min-height:38px;padding:8px 12px}
+    .btn.sm{min-height:34px;padding:6px 10px;font-size:13px}
+    .controls{gap:8px}
+    .controls > input.f, .controls > select.f{flex:1 1 100%}
+    .controls label{flex:1 1 auto}
+    .controls label input.f,.controls label select.f{flex:1 1 0;width:0 !important;min-width:0}
+    .controls > div{width:100%} .controls > div > label{flex:1 1 0;min-width:0}
+    .controls label:has(.f){flex:1 1 calc(50% - 8px);min-width:0}
+    .controls label:has(input[type=checkbox]){flex:0 1 auto}
+    .controls label.mobile-only{display:flex !important}
+    #buyn{width:0;min-width:0}
+
+    .hero{padding:10px 0 4px} .hero h1{font-size:22px} .hero p{font-size:14px}
+    .chips{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:2px 2px 8px;scrollbar-width:none;margin:12px -10px 0;padding-left:10px}
+    .chips::-webkit-scrollbar{display:none}
+    .chip{flex:0 0 auto}
+    .cards{grid-template-columns:1fr}
+    .card{padding:10px 12px}
+
+    .itemhead{gap:12px}
+    .itemhead .img{width:96px;height:52px} .itemhead .img img{max-width:88px;max-height:46px}
+    .itemhead h1{font-size:20px}
+    .itemhead > div:last-child{width:100%} .itemhead > div:last-child .btn{flex:1;justify-content:center}
+    .stats{grid-template-columns:1fr 1fr;gap:8px}
+    .stat{padding:8px 10px} .stat .v{font-size:16px}
+
+    /* item page: calculator first, then listings, then selling + item market */
+    .grid2{gap:0}
+    .grid2 > .side{display:contents}
+    .grid2 .p-calc{order:1} .grid2 .p-list{order:2} .grid2 .p-sell{order:3} .grid2 .p-im{order:4}
+    .buckhero .big{font-size:32px} .buckhero .btn{width:100%;justify-content:center}
+
+    /* responsive tables -> cards */
+    .tablewrap:has(table.rt){border:0;overflow:visible}
+    table.rt thead{display:none}
+    table.rt, table.rt tbody{display:block}
+    table.rt tr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 12px;margin-bottom:8px;
+      background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+    table.rt tr:hover{background:var(--panel2)}
+    table.rt td{border:0;padding:0;text-align:left;display:block}
+    table.rt td.c-star{order:0} table.rt td.c-img{order:1}
+    table.rt td.c-name{order:2;flex:1 1 0;min-width:0;font-weight:600;font-size:15px}
+    table.rt td.c-act{order:3;margin-left:auto}
+    table.rt tr::after{content:"";order:4;flex-basis:100%;height:0;margin-top:-6px}
+    table.rt td[data-l]{order:6;font-size:13px}
+    table.rt td[data-l]::before{content:attr(data-l);display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+    table.rt td.c-price{order:5}
+    table.rt td.c-full{flex-basis:100%}
+    table.rt td.c-hide{display:none}
+    table.rt td.empty{flex:1;text-align:center}
+    table.rt tr.used{box-shadow:inset 3px 0 var(--green)} table.rt tr.partial{box-shadow:inset 3px 0 var(--amber)}
+    table.rt tr.used td:first-child,table.rt tr.partial td:first-child{box-shadow:none}
+    td img.it{width:56px;height:28px}
+    .modal{padding:16px}
+  }
+  @media(hover:none){ tbody tr:hover{background:inherit} .btn:active{transform:scale(.97)} }
 </style>
 </head>
 <body>
@@ -130,15 +229,15 @@
     <div class="logo" onclick="go('#/')"><div class="badge">$</div><div class="t">Bazaar Finder<small>Torn bazaar price search</small></div></div>
     <div class="search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      <input id="q" placeholder="Search any item… (e.g. Xanax, 206, plushie)" autocomplete="off" spellcheck="false" />
+      <input id="q" placeholder="Search items… e.g. Xanax or 206" autocomplete="off" spellcheck="false" />
       <div class="sugg" id="sugg"></div>
     </div>
     <nav class="tabs">
-      <a href="#/" data-tab="home">🏠 <span>Home</span></a>
-      <a href="#/browse" data-tab="browse">📋 <span>Browse</span></a>
-      <a href="#/deals" data-tab="deals">💸 <span>Deals</span></a>
-      <a href="#/buck" data-tab="buck">💵 <span>Buck Stops Here</span></a>
-      <a href="#/watch" data-tab="watch">⭐ <span>Watchlist</span></a>
+      <a href="#/" data-tab="home"><i>🏠</i><span>Home</span></a>
+      <a href="#/browse" data-tab="browse"><i>📋</i><span>Browse</span></a>
+      <a href="#/deals" data-tab="deals"><i>💸</i><span>Deals</span></a>
+      <a href="#/buck" data-tab="buck"><i>💵</i><span class="lg">Buck Stops Here</span><span class="sm">$1 Items</span></a>
+      <a href="#/watch" data-tab="watch"><i>⭐</i><span>Watchlist</span></a>
     </nav>
     <button class="iconbtn" title="Settings / API key" onclick="openSettings()">⚙️</button>
   </div>
@@ -327,7 +426,7 @@ function viewHome(){
   $("#view").innerHTML = `
     <div class="hero">
       <h1>Find the cheapest bazaar in Torn</h1>
-      <p>Search ${S.items.length.toLocaleString()} items and compare live listings across thousands of player bazaars — ${listed.toLocaleString()} items currently listed. Press <b>/</b> to search.</p>
+      <p>Search ${S.items.length.toLocaleString()} items and compare live listings across thousands of player bazaars — ${listed.toLocaleString()} items currently listed.<span class="desk-only"> Press <b>/</b> to search.</span></p>
       <div class="chips">${pop.slice(0, 10).map(i => `<div class="chip" onclick="go('#/item/${i.item_id}')">${imgTag(i.item_id, "")}${esc(i.item_name)}</div>`).join("")}</div>
     </div>
     ${recent.length ? `<div class="panel"><h2>🕘 Recently viewed</h2><div class="cards">${recent.map(card).join("")}</div></div>` : ""}
@@ -353,9 +452,12 @@ function viewBrowse(isDeals){
         <label>Min MV <input class="f" id="bmv" type="text" inputmode="numeric" value="${st.minMV || ""}" placeholder="0" style="width:100px" /></label>
         <label>Min bazaars <input class="f" id="bbz" type="number" min="0" value="${st.minBaz}" style="width:70px" /></label>
         ${isDeals ? "" : `<label><input type="checkbox" id="blisted" ${st.listedOnly ? "checked" : ""}/> Listed only</label>`}
+        <label class="mobile-only">Sort <select class="f" id="bsort">
+          ${[["lowest_price:1","Lowest price"],["disc:1","Biggest discount"],["total_bazaars:-1","Most bazaars"],["market_price:-1","Highest value"],["item_name:1","Name A–Z"]].map(([v, l]) => `<option value="${v}" ${v === st.sort + ":" + st.dir ? "selected" : ""}>${l}</option>`).join("")}
+        </select></label>
         <button class="btn sm" onclick="refreshList()">↻ Refresh</button>
       </div>
-      <div class="tablewrap"><table>
+      <div class="tablewrap"><table class="rt">
         <thead><tr><th style="width:36px"></th><th style="width:60px"></th>
           <th class="sort" data-k="item_name">Item</th>
           <th class="sort num" data-k="lowest_price">Lowest bazaar</th>
@@ -381,14 +483,14 @@ function viewBrowse(isDeals){
     $("#btbody").innerHTML = rows.slice(0, st.limit).map(i => {
       const w = !!S.watch[i.item_id], d = i.lowest_price ? pct(i.lowest_price, i.market_price) : null;
       return `<tr class="clickable" data-id="${i.item_id}">
-        <td><button class="star ${w ? "on" : ""}" data-star="${i.item_id}" title="Watch">${w ? "★" : "☆"}</button></td>
-        <td>${imgTag(i.item_id)}</td>
-        <td>${esc(i.item_name)} <span class="muted small">#${i.item_id}${catOf(i.item_id) ? " · " + esc(catOf(i.item_id)) : ""}</span></td>
-        <td class="num ${d != null && d < 0 ? "green" : ""}">${money(i.lowest_price)}</td>
-        <td class="num">${money(i.bazaar_average)}</td>
-        <td class="num muted">${money(i.market_price)}</td>
-        <td class="num">${pctPill(d)}</td>
-        <td class="num">${(i.total_bazaars || 0).toLocaleString()}</td></tr>`;
+        <td class="c-star"><button class="star ${w ? "on" : ""}" data-star="${i.item_id}" title="Watch">${w ? "★" : "☆"}</button></td>
+        <td class="c-img">${imgTag(i.item_id)}</td>
+        <td class="c-name">${esc(i.item_name)} <span class="muted small">#${i.item_id}${catOf(i.item_id) ? " · " + esc(catOf(i.item_id)) : ""}</span></td>
+        <td class="num ${d != null && d < 0 ? "green" : ""}" data-l="Lowest">${money(i.lowest_price)}</td>
+        <td class="num" data-l="Avg bazaar">${money(i.bazaar_average)}</td>
+        <td class="num muted" data-l="Market value">${money(i.market_price)}</td>
+        <td class="num" data-l="vs MV">${pctPill(d)}</td>
+        <td class="num" data-l="Bazaars">${(i.total_bazaars || 0).toLocaleString()}</td></tr>`;
     }).join("") || `<tr><td colspan="8" class="empty">No items match these filters.</td></tr>`;
     $("#bmore").innerHTML = rows.length > st.limit
       ? `<button class="btn" id="morebtn">Show more (${(rows.length - st.limit).toLocaleString()} remaining)</button>`
@@ -401,6 +503,7 @@ function viewBrowse(isDeals){
   $("#bbz").addEventListener("input", e => { st.minBaz = +e.target.value || 0; draw(); });
   $("#blisted")?.addEventListener("change", e => { st.listedOnly = e.target.checked; draw(); });
   $("#bcat")?.addEventListener("change", e => { st.cat = e.target.value; draw(); });
+  $("#bsort")?.addEventListener("change", e => { const [k, d] = e.target.value.split(":"); st.sort = k; st.dir = +d; draw(); });
   document.querySelectorAll("th.sort").forEach(th => th.addEventListener("click", () => {
     const k = th.dataset.k; if (st.sort === k) st.dir *= -1; else { st.sort = k; st.dir = (k === "item_name" || k === "disc" || k === "lowest_price") ? 1 : -1; } draw(); }));
   $("#btbody").addEventListener("click", e => {
@@ -426,17 +529,17 @@ function viewWatch(){
       <h2>⭐ Watchlist</h2>
       <div style="display:flex;gap:8px"><button class="btn sm" onclick="refreshList()">↻ Refresh</button></div></div>
     <p class="small muted" style="margin-top:0">Set a target price — rows turn green when any bazaar is at or below it. Saved in this browser.</p>
-    ${rows.length ? `<div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th style="width:60px"></th><th>Item</th>
+    ${rows.length ? `<div class="tablewrap"><table class="rt"><thead><tr><th style="width:36px"></th><th style="width:60px"></th><th>Item</th>
       <th class="num">Lowest bazaar</th><th class="num">Market value</th><th class="num">vs MV</th><th class="num">Target price</th><th>Status</th></tr></thead>
       <tbody>${rows.map(i => { const t = S.watch[i.item_id].target, hit = t && i.lowest_price && i.lowest_price <= t;
         return `<tr class="${hit ? "used" : ""}">
-          <td><button class="star on" onclick="toggleWatch(${i.item_id});viewWatch()">★</button></td>
-          <td>${imgTag(i.item_id)}</td>
-          <td><a href="#/item/${i.item_id}">${esc(i.item_name)}</a> <span class="muted small">(${i.total_bazaars || 0} bazaars)</span></td>
-          <td class="num">${money(i.lowest_price)}</td><td class="num muted">${money(i.market_price)}</td>
-          <td class="num">${pctPill(i.lowest_price ? pct(i.lowest_price, i.market_price) : null)}</td>
-          <td class="num"><input class="tgt" data-tgt="${i.item_id}" value="${t ? Math.round(t).toLocaleString("en-US") : ""}" placeholder="$ target" /></td>
-          <td>${!t ? '<span class="muted small">no target</span>' : hit ? '<span class="pill g">BUY ✓</span>' : `<span class="small muted">${short(i.lowest_price - t)} above</span>`}</td></tr>`; }).join("")}
+          <td class="c-star"><button class="star on" onclick="toggleWatch(${i.item_id});viewWatch()">★</button></td>
+          <td class="c-img">${imgTag(i.item_id)}</td>
+          <td class="c-name"><a href="#/item/${i.item_id}">${esc(i.item_name)}</a> <span class="muted small">(${i.total_bazaars || 0} bazaars)</span></td>
+          <td class="num" data-l="Lowest">${money(i.lowest_price)}</td><td class="num muted" data-l="Market value">${money(i.market_price)}</td>
+          <td class="num" data-l="vs MV">${pctPill(i.lowest_price ? pct(i.lowest_price, i.market_price) : null)}</td>
+          <td class="num" data-l="Target price"><input class="tgt" data-tgt="${i.item_id}" value="${t ? Math.round(t).toLocaleString("en-US") : ""}" placeholder="$ target" /></td>
+          <td data-l="Status">${!t ? '<span class="muted small">no target</span>' : hit ? '<span class="pill g">BUY ✓</span>' : `<span class="small muted">${short(i.lowest_price - t)} above</span>`}</td></tr>`; }).join("")}
       </tbody></table></div>`
     : `<div class="empty">Your watchlist is empty.<br>Tap ☆ on any item to track its lowest bazaar price.</div>`}
   </div>`;
@@ -506,7 +609,7 @@ function renderItem(id, st, keepFocus){
     </div>
 
     <div class="grid2">
-      <div class="panel" style="min-width:0">
+      <div class="panel p-list" style="min-width:0">
         <div class="controls" style="justify-content:space-between">
           <h2 style="margin:0">Bazaar listings <span class="muted small">(${L.length}${L.length !== all.length ? " of " + all.length : ""})</span></h2>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -514,25 +617,25 @@ function renderItem(id, st, keepFocus){
             <label>Max price <input class="f" id="fmax" type="text" inputmode="numeric" value="${st.maxPrice ? st.maxPrice.toLocaleString("en-US") : ""}" placeholder="any" style="width:110px" /></label>
           </div>
         </div>
-        ${L.length ? `<div class="tablewrap"><table>
+        ${L.length ? `<div class="tablewrap"><table class="rt">
           <thead><tr><th>#</th><th>Seller</th><th class="num">Qty</th><th class="num">Price</th><th class="num">vs MV</th><th class="num">Total</th><th>Updated</th><th></th></tr></thead>
           <tbody>${L.map((l, k) => { const u = f.used.get(l);
             return `<tr class="${u ? (u === l.quantity ? "used" : "partial") : ""}">
-              <td class="muted">${k + 1}</td>
-              <td><a href="${profileUrl(l.player_id)}" target="_blank" rel="noopener">${esc(l.player_name)}</a> <span class="muted small">[${l.player_id}]</span>${l.uid ? ` <span class="muted small" title="Unique item UID">uid ${esc(l.uid)}</span>` : ""}</td>
-              <td class="num">${l.quantity.toLocaleString()}${u && u !== l.quantity ? `<div class="small amber">buy ${u}</div>` : ""}</td>
-              <td class="num"><b>${money(l.price)}</b></td>
-              <td class="num">${pctPill(pct(l.price, mv))}</td>
-              <td class="num muted">${short(l.price * l.quantity)}</td>
-              <td class="small muted" title="Last checked ${ago(l.last_checked)}">${ago(l.content_updated)}</td>
-              <td><a class="btn sm primary" href="${bazaarUrl(l.player_id)}" target="_blank" rel="noopener">Bazaar ↗</a></td></tr>`; }).join("")}
+              <td class="muted c-hide">${k + 1}</td>
+              <td class="c-name"><a href="${profileUrl(l.player_id)}" target="_blank" rel="noopener">${esc(l.player_name)}</a> <span class="muted small">[${l.player_id}]</span>${l.uid ? ` <span class="muted small" title="Unique item UID">uid ${esc(l.uid)}</span>` : ""}</td>
+              <td class="num" data-l="Qty">${l.quantity.toLocaleString()}${u && u !== l.quantity ? `<div class="small amber">buy ${u}</div>` : ""}</td>
+              <td class="num" data-l="Price"><b>${money(l.price)}</b></td>
+              <td class="num" data-l="vs MV">${pctPill(pct(l.price, mv))}</td>
+              <td class="num muted" data-l="Total">${short(l.price * l.quantity)}</td>
+              <td class="small muted" data-l="Updated" title="Last checked ${ago(l.last_checked)}">${ago(l.content_updated)}</td>
+              <td class="c-act"><a class="btn sm primary" href="${bazaarUrl(l.player_id)}" target="_blank" rel="noopener">Bazaar ↗</a></td></tr>`; }).join("")}
           </tbody></table></div>`
         : `<div class="empty">${all.length ? "No listings match your filters." : "Nobody has this item listed in a tracked bazaar right now."}</div>`}
         <div class="small muted" style="margin-top:8px">Showing the cheapest ${all.length} listings tracked by TornW3B. Prices can change quickly — always double-check in the bazaar before buying.</div>
       </div>
 
-      <div>
-        <div class="panel">
+      <div class="side">
+        <div class="panel p-calc">
           <h3>🛒 Bulk buy calculator</h3>
           <label class="small muted">How many do you want?</label>
           <div style="display:flex;gap:8px;margin-top:4px">
@@ -549,7 +652,7 @@ function renderItem(id, st, keepFocus){
           <div class="small muted" style="margin-top:6px">Highlighted rows show which bazaars to buy from.</div>
         </div>
 
-        <div class="panel">
+        <div class="panel p-sell">
           <h3>🏷️ Selling? Price suggestions</h3>
           ${lowest ? `
           <div class="calcout">
@@ -560,7 +663,7 @@ function renderItem(id, st, keepFocus){
           <div class="small muted" style="margin-top:6px">Item Market sales pay a 5% fee — bazaar sales don't.</div>` : `<div class="muted small">No competing bazaars — you set the price! Market value is ${money(mv)}.</div>`}
         </div>
 
-        <div class="panel" id="impanel">
+        <div class="panel p-im" id="impanel">
           <h3>🏪 Item Market (official)</h3>
           <div id="imbody">${S.key ? `<div class="spinner" style="margin:10px auto"></div>` : `<div class="small muted">Add a Torn API key in <a href="#" onclick="openSettings();return false">settings</a> to compare with the cheapest Item Market listings.</div>`}</div>
         </div>
@@ -734,12 +837,14 @@ function drawBuck(){
         </select></label>
         <label title="Also scan the busiest / popular / trending lists and all 24 specialized category directories. Finds more, takes a few minutes."><input type="checkbox" id="bkdeep" ${BK.deep ? "checked" : ""}/> Deep scan</label>
         <label><input type="checkbox" id="bkopen" ${BK.openOnly ? "checked" : ""}/> Open bazaars only</label>
+        <label class="mobile-only">Sort <select class="f" id="bksort">${[["value","Total value"],["mv","Market value"],["qty","Quantity"],["price","Price"],["name","Name"]].map(([v, l]) => `<option value="${v}" ${v === BK.sort ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label style="flex:1;min-width:220px">Extra player IDs <input class="f" id="bkextra" style="flex:1" placeholder="e.g. 2114440, 1195734" value="${esc(BK.extra)}" /></label>
       </div>
       <div id="bkprog"></div>`;
     $("#bkmax").onchange = e => { BK.maxPrice = +e.target.value; localStorage.setItem("tbf_buck_max", BK.maxPrice); drawBuck(); };
     $("#bkdeep").onchange = e => { BK.deep = e.target.checked; localStorage.setItem("tbf_buck_deep", BK.deep ? "1" : "0"); };
     $("#bkopen").onchange = e => { BK.openOnly = e.target.checked; localStorage.setItem("tbf_buck_open", BK.openOnly ? "1" : "0"); drawBuck(); };
+    $("#bksort").onchange = e => { BK.sort = e.target.value; drawBuck(); };
     $("#bkextra").onchange = e => { BK.extra = e.target.value; localStorage.setItem("tbf_buck_extra", BK.extra); };
   }
   $("#bkprog").innerHTML = BK.running || BK.phase ? `
@@ -763,7 +868,7 @@ function drawBuck(){
         <h2 style="margin:0">${rows.length} listing${rows.length === 1 ? "" : "s"} at ${label}</h2>
         ${rows.length ? `<div class="small muted">Buy everything for <b class="green">${money(totalCost)}</b> · worth <b>${short(totalVal)}</b> at market value</div>` : ""}
       </div>
-      ${rows.length ? `<div class="tablewrap" style="margin-top:10px"><table>
+      ${rows.length ? `<div class="tablewrap" style="margin-top:10px"><table class="rt">
         <thead><tr><th style="width:60px"></th>
           <th class="sort ${BK.sort === "name" ? "asc" : ""}" data-bs="name">Item</th>
           <th class="sort num ${BK.sort === "qty" ? "desc" : ""}" data-bs="qty">Qty</th>
@@ -772,28 +877,28 @@ function drawBuck(){
           <th class="sort num ${BK.sort === "value" ? "desc" : ""}" data-bs="value">Total value</th>
           <th>Seller</th><th>Seen</th><th></th></tr></thead>
         <tbody>${rows.map(r => `<tr>
-          <td>${imgTag(r.item_id)}</td>
-          <td><a href="#/item/${r.item_id}">${esc(r.name)}</a> <span class="muted small">${esc(r.type)}${r.uid ? " · uid " + esc(r.uid) : ""}</span></td>
-          <td class="num">${r.qty.toLocaleString()}</td>
-          <td class="num"><b class="green">${money(r.price)}</b></td>
-          <td class="num muted">${money(r.mv)}</td>
-          <td class="num">${short(r.mv * r.qty)}</td>
-          <td><a href="${profileUrl(r.player_id)}" target="_blank" rel="noopener">${esc(r.player_name)}</a> <span class="muted small">[${r.player_id}]</span>
+          <td class="c-img">${imgTag(r.item_id)}</td>
+          <td class="c-name"><a href="#/item/${r.item_id}">${esc(r.name)}</a> <span class="muted small">${esc(r.type)}${r.uid ? " · uid " + esc(r.uid) : ""}</span></td>
+          <td class="num" data-l="Qty">${r.qty.toLocaleString()}</td>
+          <td class="num" data-l="Price"><b class="green">${money(r.price)}</b></td>
+          <td class="num muted" data-l="Market value">${money(r.mv)}</td>
+          <td class="num" data-l="Total value">${short(r.mv * r.qty)}</td>
+          <td data-l="Seller"><a href="${profileUrl(r.player_id)}" target="_blank" rel="noopener">${esc(r.player_name)}</a> <span class="muted small">[${r.player_id}]</span>
               ${r.is_open === false ? '<span class="pill c">closed</span>' : r.is_open ? '<span class="pill o">open</span>' : ""}</td>
-          <td class="small muted">${ago(r.t)}</td>
-          <td><a class="btn sm primary" href="${bazaarUrl(r.player_id)}" target="_blank" rel="noopener">Bazaar ↗</a></td></tr>`).join("")}
+          <td class="small muted" data-l="Seen">${ago(r.t)}</td>
+          <td class="c-act"><a class="btn sm primary" href="${bazaarUrl(r.player_id)}" target="_blank" rel="noopener">Bazaar ↗</a></td></tr>`).join("")}
         </tbody></table></div>
         <div class="small muted" style="margin-top:8px">$1 items tend to go within seconds, and some sellers only mean them for friends or faction mates. The Seen column shows when each bazaar was checked.</div>`
       : `<div class="empty">${BK.running ? "Scanning… results will appear here as they're found." : BK.t ? `No ${label} items in the ${BK.bazaars.filter(b => b.scanned).length} bazaars checked. $1 items sell fast, so try a rescan, <b>Deep scan</b>, or a higher price filter.` : "Press <b>▶ Start scan</b> to find $1 items."}</div>`}
     </div>
     ${w3.length ? `<div class="panel"><h3>📡 Also reported by TornW3B</h3><div class="cards">${w3.map(card).join("")}</div></div>` : ""}
     ${BK.bazaars.length ? `<div class="panel"><details><summary>Bazaars in this scan (${BK.bazaars.length})</summary>
-      <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Bazaar</th><th>Found via</th><th class="num">$1 sales/wk</th><th class="num">Listings</th><th class="num">≤ $1k</th><th></th></tr></thead><tbody>
-      ${BK.bazaars.map(b => `<tr><td><a href="${bazaarUrl(b.id)}" target="_blank" rel="noopener">${esc(b.name)}</a> <span class="muted small">[${b.id}]</span> ${b.is_open === false ? '<span class="pill c">closed</span>' : ""}</td>
-        <td class="small muted">${esc(b.sources.join(", "))}</td><td class="num">${b.dollar_sales ?? "—"}</td>
-        <td class="num">${b.scanned ? b.count : b.error ? `<span class="red small" title="${esc(b.error)}">error</span>` : '<span class="muted">…</span>'}</td>
-        <td class="num ${b.items ? "green" : "muted"}">${b.scanned ? b.items : ""}</td>
-        <td><a class="btn sm" href="${bazaarUrl(b.id)}" target="_blank" rel="noopener">↗</a></td></tr>`).join("")}
+      <div class="tablewrap" style="margin-top:10px"><table class="rt"><thead><tr><th>Bazaar</th><th>Found via</th><th class="num">$1 sales/wk</th><th class="num">Listings</th><th class="num">≤ $1k</th><th></th></tr></thead><tbody>
+      ${BK.bazaars.map(b => `<tr><td class="c-name"><a href="${bazaarUrl(b.id)}" target="_blank" rel="noopener">${esc(b.name)}</a> <span class="muted small">[${b.id}]</span> ${b.is_open === false ? '<span class="pill c">closed</span>' : ""}</td>
+        <td class="small muted c-full" data-l="Found via">${esc(b.sources.join(", "))}</td><td class="num" data-l="$1 sales/wk">${b.dollar_sales ?? "—"}</td>
+        <td class="num" data-l="Listings">${b.scanned ? b.count : b.error ? `<span class="red small" title="${esc(b.error)}">error</span>` : '<span class="muted">…</span>'}</td>
+        <td class="num ${b.items ? "green" : "muted"}" data-l="≤ $1k">${b.scanned ? b.items : "—"}</td>
+        <td class="c-act"><a class="btn sm" href="${bazaarUrl(b.id)}" target="_blank" rel="noopener">↗</a></td></tr>`).join("")}
       </tbody></table></div></details></div>` : ""}`;
   document.querySelectorAll("[data-bs]").forEach(th => th.onclick = () => { BK.sort = th.dataset.bs; drawBuck(); });
 }

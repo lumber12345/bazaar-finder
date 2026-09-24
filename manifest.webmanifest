@@ -1,0 +1,16 @@
+{
+  "name": "Torn Bazaar Finder",
+  "short_name": "Bazaar Finder",
+  "description": "Search Torn bazaars for the cheapest prices, deals and $1 items.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#191919",
+  "theme_color": "#222222",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

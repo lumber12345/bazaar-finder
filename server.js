@@ -11,6 +11,16 @@ const UPSTREAM = "https://weav3r.dev/api/marketplace";
 const LIST_TTL = 60 * 1000;  // full item list cache
 const ITEM_TTL = 20 * 1000;  // single item listings cache
 
+// Files the server is allowed to serve (whitelist -> no path traversal)
+const STATIC = {
+  "index.html": "text/html; charset=utf-8",
+  "manifest.webmanifest": "application/manifest+json",
+  "icon-180.png": "image/png",
+  "icon-192.png": "image/png",
+  "icon-512.png": "image/png",
+  "icon-maskable.png": "image/png",
+};
+
 const cache = new Map(); // key -> { t, status, body }
 const inflight = new Map();
 
@@ -57,9 +67,13 @@ const server = http.createServer(async (req, res) => {
     const e = await upstream(`${UPSTREAM}/${m[1]}`, ITEM_TTL);
     return send(e.status, "application/json", e.body);
   }
-  if (url.pathname === "/" || url.pathname === "/index.html") {
-    return fs.readFile(path.join(__dirname, "index.html"), (err, data) =>
-      err ? send(500, "text/plain", "index.html missing") : send(200, "text/html; charset=utf-8", data));
+  const file = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+  if (STATIC[file]) {
+    return fs.readFile(path.join(__dirname, file), (err, data) => {
+      if (err) return send(404, "text/plain", "Not found");
+      res.writeHead(200, { "Content-Type": STATIC[file], "Cache-Control": file === "index.html" ? "no-cache" : "public, max-age=86400" });
+      res.end(data);
+    });
   }
   send(404, "text/plain", "Not found");
 });
