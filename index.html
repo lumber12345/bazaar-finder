@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Torn Bazaar Finder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2385b200'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%23111'%3E$%3C/text%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#191919; --panel:#232323; --panel2:#2c2c2c; --line:#383838; --text:#ddd; --muted:#999;
+    --green:#85b200; --green2:#9fd400; --red:#e0584f; --amber:#e8a93a; --blue:#4fa3e0;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",Roboto,Arial,sans-serif}
+  a{color:var(--green2);text-decoration:none} a:hover{text-decoration:underline}
+  button,input,select{font:inherit;color:inherit}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+
+  header{background:linear-gradient(180deg,#2e2e2e,#222);border-bottom:1px solid #000;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px #0008}
+  .hbar{display:flex;align-items:center;gap:16px;height:60px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;white-space:nowrap;cursor:pointer}
+  .logo .badge{width:32px;height:32px;border-radius:8px;background:var(--green);color:#111;display:grid;place-items:center;font-size:19px}
+  .logo small{display:block;font-weight:400;font-size:11px;color:var(--muted);margin-top:-3px}
+
+  .search{position:relative;flex:1;max-width:560px}
+  .search input{width:100%;height:40px;border-radius:20px;border:1px solid var(--line);background:#141414;padding:0 16px 0 40px;outline:none;transition:.15s}
+  .search input:focus{border-color:var(--green)}
+  .search svg{position:absolute;left:14px;top:12px;opacity:.6}
+  .sugg{position:absolute;top:44px;left:0;right:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:0 10px 30px #000a;display:none;max-height:420px;overflow-y:auto}
+  .sugg.show{display:block}
+  .sugg .row{display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #2a2a2a}
+  .sugg .row:last-child{border-bottom:0}
+  .sugg .row.active,.sugg .row:hover{background:#333}
+  .sugg img{width:38px;height:19px;object-fit:contain}
+  .sugg .nm{flex:1} .sugg .nm small{color:var(--muted);margin-left:6px}
+  .sugg .pr{color:var(--green2);font-variant-numeric:tabular-nums}
+  .sugg .none{padding:12px;color:var(--muted)}
+
+  nav.tabs{display:flex;gap:4px;margin-left:auto}
+  nav.tabs a{padding:8px 12px;border-radius:8px;color:var(--text);white-space:nowrap}
+  nav.tabs a:hover{background:#333;text-decoration:none}
+  nav.tabs a.on{background:var(--green);color:#111;font-weight:600}
+  .iconbtn{background:none;border:1px solid var(--line);border-radius:8px;height:36px;width:36px;display:grid;place-items:center;cursor:pointer}
+  .iconbtn:hover{border-color:var(--green)}
+
+  main{padding:20px 0 60px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+  h1,h2,h3{margin:0 0 10px} h2{font-size:18px} h3{font-size:15px;color:#ccc}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .green{color:var(--green2)} .red{color:var(--red)} .amber{color:var(--amber)}
+  .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+  .btn{background:#333;border:1px solid #444;border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:var(--green);text-decoration:none}
+  .btn.primary{background:var(--green);color:#111;border-color:var(--green);font-weight:600}
+  .btn.primary:hover{background:var(--green2)}
+  .btn.sm{padding:4px 9px;font-size:12px}
+  input.f,select.f{background:#141414;border:1px solid var(--line);border-radius:8px;padding:7px 10px;outline:none}
+  input.f:focus,select.f:focus{border-color:var(--green)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+  .controls label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px 10px;border-bottom:1px solid #2f2f2f;text-align:left}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:var(--panel2)}
+  th.sort{cursor:pointer;user-select:none} th.sort:hover{color:#fff}
+  th.sort.asc::after{content:" ▲";font-size:9px} th.sort.desc::after{content:" ▼";font-size:9px}
+  tbody tr:hover{background:#2a2a2a}
+  tr.clickable{cursor:pointer}
+  tr.used{background:#85b20018} tr.used td:first-child{box-shadow:inset 3px 0 var(--green)}
+  tr.partial{background:#e8a93a14} tr.partial td:first-child{box-shadow:inset 3px 0 var(--amber)}
+  td img.it{width:50px;height:25px;object-fit:contain;vertical-align:middle}
+  .tablewrap{overflow-x:auto;border-radius:8px;border:1px solid #2f2f2f}
+
+  .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+  .pill.g{background:#85b20026;color:var(--green2)} .pill.r{background:#e0584f22;color:#ff7b72} .pill.n{background:#ffffff14;color:#bbb}
+  .star{cursor:pointer;font-size:18px;color:#555;background:none;border:0;padding:0 4px;line-height:1}
+  .star.on{color:#f5c518}
+
+  .itemhead{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .itemhead .img{width:140px;height:70px;background:#1a1a1a;border-radius:8px;display:grid;place-items:center;border:1px solid var(--line)}
+  .itemhead .img img{max-width:130px;max-height:64px}
+  .itemhead h1{font-size:24px;display:flex;align-items:center;gap:6px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .stat .k{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+  .stat .v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+  .stat .s{font-size:12px;color:var(--muted)}
+
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr} nav.tabs a span{display:none}}
+  @media(max-width:640px){.logo small,.logo .t{display:none} .hbar{gap:8px}}
+
+  .calcout{margin-top:10px;background:#151515;border-radius:8px;padding:10px 12px;border:1px solid var(--line)}
+  .calcout div{display:flex;justify-content:space-between;padding:2px 0}
+  .empty{padding:40px 20px;text-align:center;color:var(--muted)}
+  .spinner{width:28px;height:28px;border:3px solid #444;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#333;border:1px solid var(--green);padding:10px 18px;border-radius:8px;transition:.25s;z-index:100;box-shadow:0 8px 20px #000a}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .hero{text-align:center;padding:30px 10px 10px}
+  .hero h1{font-size:28px} .hero p{color:var(--muted);max-width:620px;margin:6px auto 0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+  .chip{background:#2d2d2d;border:1px solid var(--line);border-radius:16px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .chip:hover{border-color:var(--green)} .chip img{width:28px;height:14px;object-fit:contain}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;gap:10px;align-items:center;cursor:pointer}
+  .card:hover{border-color:var(--green)} .card img{width:60px;height:30px;object-fit:contain}
+  .card .b{flex:1;min-width:0} .card .b div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .modalbg{position:fixed;inset:0;background:#000a;display:none;place-items:center;z-index:50}
+  .modalbg.show{display:grid}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(480px,92vw)}
+  .modal p{color:var(--muted);font-size:13px}
+  .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#666} .dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+  input.tgt{width:110px;background:#141414;border:1px solid var(--line);border-radius:6px;padding:4px 6px;text-align:right}
+  footer{color:#666;font-size:12px;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap hbar">
+    <div class="logo" onclick="go('#/')"><div class="badge">$</div><div class="t">Bazaar Finder<small>Torn bazaar price search</small></div></div>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="q" placeholder="Search any item… (e.g. Xanax, 206, plushie)" autocomplete="off" spellcheck="false" />
+      <div class="sugg" id="sugg"></div>
+    </div>
+    <nav class="tabs">
+      <a href="#/" data-tab="home">🏠 <span>Home</span></a>
+      <a href="#/browse" data-tab="browse">📋 <span>Browse</span></a>
+      <a href="#/deals" data-tab="deals">💸 <span>Deals</span></a>
+      <a href="#/watch" data-tab="watch">⭐ <span>Watchlist</span></a>
+    </nav>
+    <button class="iconbtn" title="Settings / API key" onclick="openSettings()">⚙️</button>
+  </div>
+</header>
+
+<main class="wrap" id="view"><div class="spinner"></div></main>
+<footer>Bazaar data courtesy of <a href="https://weav3r.dev" target="_blank" rel="noopener">TornW3B (weav3r.dev)</a> · Item market data from the official Torn API (optional key) · Not affiliated with Torn.</footer>
+
+<div class="modalbg" id="settings">
+  <div class="modal">
+    <h2>⚙️ Settings</h2>
+    <p>Bazaar search works with <b>no key</b>. Add a Torn API key (a <b>Public</b> key is enough) to also compare against the official <b>Item Market</b> and filter items by category. Your key is stored only in this browser and sent only to api.torn.com.</p>
+    <label class="small muted">Torn API key</label>
+    <input class="f" id="apikey" style="width:100%;margin:4px 0 10px" placeholder="16-character API key" maxlength="16" />
+    <label class="small muted" style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><input type="checkbox" id="autoref" /> Auto-refresh item listings every 30s</label>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <a class="btn" href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener">Get a key ↗</a>
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn primary" onclick="saveSettings()">Save</button>
+    </div>
+    <div id="keystatus" class="small" style="margin-top:10px"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ State & utils ============================ */
+const W3B = "https://weav3r.dev/api/marketplace";
+let API_BASE = "/api/marketplace";       // local proxy (server.js); falls back to W3B directly
+const S = {
+  items: [], byId: new Map(), listAt: 0,
+  cats: JSON.parse(localStorage.getItem("tbf_cats") || "null"),   // {t, map:{id:type}}
+  key: localStorage.getItem("tbf_key") || "",
+  autoref: localStorage.getItem("tbf_autoref") === "1",
+  watch: JSON.parse(localStorage.getItem("tbf_watch") || "{}"),  // id -> {target}
+  recent: JSON.parse(localStorage.getItem("tbf_recent") || "[]"),
+  timer: null,
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => n == null || isNaN(n) ? "—" : "$" + Math.round(n).toLocaleString("en-US");
+const short = n => { if (n == null) return "—"; const a = Math.abs(n);
+  return a >= 1e9 ? "$" + (n/1e9).toFixed(2) + "b" : a >= 1e6 ? "$" + (n/1e6).toFixed(2) + "m" : a >= 1e4 ? "$" + (n/1e3).toFixed(1) + "k" : money(n); };
+const img = id => `https://www.torn.com/images/items/${id}/large.png`;
+const imgTag = (id, cls = "it") => id > 0 ? `<img class="${cls}" src="${img(id)}" loading="lazy" onerror="this.style.visibility='hidden'" alt="">` : `<span class="${cls}" style="display:inline-block"></span>`;
+const ago = t => { if (!t) return "—"; const s = Math.max(0, Date.now()/1000 - t);
+  return s < 60 ? Math.floor(s) + "s ago" : s < 3600 ? Math.floor(s/60) + "m ago" : s < 86400 ? Math.floor(s/3600) + "h ago" : Math.floor(s/86400) + "d ago"; };
+const pct = (p, mv) => mv ? (p - mv) / mv * 100 : null;
+const pctPill = v => v == null ? `<span class="pill n">—</span>` : `<span class="pill ${v < -0.5 ? "g" : v > 0.5 ? "r" : "n"}">${v > 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
+const bazaarUrl = pid => `https://www.torn.com/bazaar.php?userId=${pid}`;
+const profileUrl = pid => `https://www.torn.com/profiles.php?XID=${pid}`;
+const marketUrl = id => `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${id}`;
+const go = h => { location.hash = h; };
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
+function copy(txt, label){ navigator.clipboard?.writeText(String(txt)).then(() => toast("Copied " + (label || txt))).catch(() => toast(String(txt))); }
+const saveWatch = () => localStorage.setItem("tbf_watch", JSON.stringify(S.watch));
+
+async function getJSON(url){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function w3b(path = ""){
+  try { return await getJSON(API_BASE + path); }
+  catch (e) {
+    if (API_BASE !== W3B) { API_BASE = W3B; return getJSON(API_BASE + path); } // no local proxy -> go direct
+    throw e;
+  }
+}
+
+/* ============================ Data ============================ */
+async function loadList(force){
+  if (!force && S.items.length && Date.now() - S.listAt < 60000) return;
+  const d = await w3b("");
+  S.items = (d.items || []).filter(i => i.item_id > 0);
+  S.byId = new Map(S.items.map(i => [i.item_id, i]));
+  S.listAt = Date.now();
+}
+async function torn(path){
+  const sep = path.includes("?") ? "&" : "?";
+  const d = await getJSON(`https://api.torn.com/v2${path}${sep}key=${encodeURIComponent(S.key)}&comment=BazaarFinder`);
+  if (d.error) throw new Error(d.error.error || "Torn API error");
+  return d;
+}
+async function loadCats(){
+  if (!S.key) return;
+  if (S.cats && Date.now() - S.cats.t < 86400000) return;
+  try {
+    const d = await torn("/torn/items");
+    const map = {}; (d.items || []).forEach(i => map[i.id] = i.type);
+    S.cats = { t: Date.now(), map };
+    localStorage.setItem("tbf_cats", JSON.stringify(S.cats));
+  } catch (e) { console.warn("categories:", e); }
+}
+const catOf = id => S.cats?.map?.[id] || null;
+
+/* ============================ Search / autocomplete ============================ */
+function score(name, q){
+  const n = name.toLowerCase();
+  if (n === q) return 1000;
+  if (n.startsWith(q)) return 800 - n.length;
+  if (n.split(/[\s\-']+/).some(w => w.startsWith(q))) return 600 - n.length;
+  const i = n.indexOf(q); if (i >= 0) return 400 - i - n.length/10;
+  // subsequence (fuzzy)
+  let j = 0, gaps = 0, last = -1;
+  for (let k = 0; k < n.length && j < q.length; k++) if (n[k] === q[j]) { if (last >= 0) gaps += k - last - 1; last = k; j++; }
+  return j === q.length ? 200 - gaps - n.length/10 : -1;
+}
+function searchItems(q, limit = 12){
+  q = q.trim().toLowerCase(); if (!q) return [];
+  if (/^\d+$/.test(q) && S.byId.has(+q)) return [S.byId.get(+q)];
+  const words = q.split(/\s+/);
+  return S.items.map(i => {
+    let s = score(i.item_name, q);
+    if (s < 0 && words.length > 1 && words.every(w => i.item_name.toLowerCase().includes(w))) s = 300;
+    if (s >= 0 && i.total_bazaars) s += 25; // prefer items actually listed
+    return [s, i];
+  }).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0]).slice(0, limit).map(x => x[1]);
+}
+let suggIdx = -1, suggList = [];
+function renderSugg(){
+  const box = $("#sugg"), q = $("#q").value;
+  suggList = searchItems(q); suggIdx = suggList.length ? 0 : -1;
+  if (!q.trim()) { box.classList.remove("show"); return; }
+  box.innerHTML = suggList.length ? suggList.map((i, k) => `
+    <div class="row ${k === 0 ? "active" : ""}" data-id="${i.item_id}">
+      ${imgTag(i.item_id, "")}<div class="nm">${esc(i.item_name)}<small>#${i.item_id}</small></div>
+      <div class="pr">${i.lowest_price ? short(i.lowest_price) : '<span class="muted small">no bazaars</span>'}</div>
+    </div>`).join("") : `<div class="none">No items match “${esc(q)}”</div>`;
+  box.classList.add("show");
+}
+function pickSugg(i){ if (!i) return; $("#q").value = ""; $("#sugg").classList.remove("show"); $("#q").blur(); go("#/item/" + i.item_id); }
+$("#q").addEventListener("input", renderSugg);
+$("#q").addEventListener("focus", () => $("#q").value && renderSugg());
+$("#q").addEventListener("keydown", e => {
+  const rows = [...document.querySelectorAll("#sugg .row")];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault(); if (!rows.length) return;
+    suggIdx = (suggIdx + (e.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length;
+    rows.forEach((r, k) => r.classList.toggle("active", k === suggIdx)); rows[suggIdx].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter") pickSugg(suggList[suggIdx]);
+  else if (e.key === "Escape") { $("#sugg").classList.remove("show"); $("#q").blur(); }
+});
+$("#sugg").addEventListener("mousedown", e => { const r = e.target.closest(".row"); if (r) pickSugg(S.byId.get(+r.dataset.id)); });
+document.addEventListener("click", e => { if (!e.target.closest(".search")) $("#sugg").classList.remove("show"); });
+document.addEventListener("keydown", e => { if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#q").focus(); } });
+
+/* ============================ Router ============================ */
+async function route(){
+  clearInterval(S.timer); S.timer = null;
+  const h = location.hash || "#/";
+  const tab = h.startsWith("#/browse") ? "browse" : h.startsWith("#/deals") ? "deals" : h.startsWith("#/watch") ? "watch" : h.startsWith("#/item") ? "" : "home";
+  document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
+  const v = $("#view");
+  try {
+    if (!S.items.length) { v.innerHTML = `<div class="spinner"></div>`; await loadList(); }
+    const m = h.match(/^#\/item\/(\d+)/);
+    if (m) return viewItem(+m[1]);
+    if (tab === "browse") return viewBrowse(false);
+    if (tab === "deals") return viewBrowse(true);
+    if (tab === "watch") return viewWatch();
+    return viewHome();
+  } catch (e) {
+    v.innerHTML = `<div class="panel empty">⚠️ Couldn't load bazaar data (${esc(e.message)}).<br><br><button class="btn primary" onclick="route()">Retry</button></div>`;
+  }
+}
+window.addEventListener("hashchange", () => { window.scrollTo(0, 0); route(); });
+
+/* ============================ Home ============================ */
+const POPULAR = [206, 197, 367, 366, 283, 67, 530, 532, 180, 818, 186, 264, 260, 272, 617, 385, 731, 66];
+function card(i){
+  const w = S.watch[i.item_id], hit = w?.target && i.lowest_price && i.lowest_price <= w.target;
+  return `<div class="card" onclick="go('#/item/${i.item_id}')">${imgTag(i.item_id, "")}
+    <div class="b"><div>${esc(i.item_name)}</div>
+    <div class="small"><span class="${hit ? "green" : ""}">${i.lowest_price ? money(i.lowest_price) : "no bazaars"}</span>
+    <span class="muted"> · MV ${short(i.market_price)}</span></div></div>
+    ${i.lowest_price ? pctPill(pct(i.lowest_price, i.market_price)) : ""}</div>`;
+}
+function viewHome(){
+  const pop = POPULAR.map(id => S.byId.get(id)).filter(Boolean);
+  const recent = S.recent.map(id => S.byId.get(id)).filter(Boolean).slice(0, 8);
+  const listed = S.items.filter(i => i.total_bazaars).length;
+  const deals = S.items.filter(i => i.lowest_price && i.market_price >= 50000 && i.total_bazaars >= 3)
+    .map(i => [pct(i.lowest_price, i.market_price), i]).sort((a, b) => a[0] - b[0]).slice(0, 6).map(x => x[1]);
+  $("#view").innerHTML = `
+    <div class="hero">
+      <h1>Find the cheapest bazaar in Torn</h1>
+      <p>Search ${S.items.length.toLocaleString()} items and compare live listings across thousands of player bazaars — ${listed.toLocaleString()} items currently listed. Press <b>/</b> to search.</p>
+      <div class="chips">${pop.slice(0, 10).map(i => `<div class="chip" onclick="go('#/item/${i.item_id}')">${imgTag(i.item_id, "")}${esc(i.item_name)}</div>`).join("")}</div>
+    </div>
+    ${recent.length ? `<div class="panel"><h2>🕘 Recently viewed</h2><div class="cards">${recent.map(card).join("")}</div></div>` : ""}
+    <div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><h2>💸 Biggest discounts right now</h2><a href="#/deals" class="small">See all deals →</a></div>
+      <div class="cards">${deals.map(card).join("")}</div>
+      <div class="small muted" style="margin-top:8px">Items worth ≥ $50k with 3+ bazaars, ranked by cheapest bazaar vs market value.</div></div>
+    <div class="panel"><h2>🔥 Popular items</h2><div class="cards">${pop.map(card).join("")}</div></div>`;
+}
+
+/* ============================ Browse / Deals ============================ */
+const B = { q: "", sort: "total_bazaars", dir: -1, listedOnly: true, minMV: 0, minBaz: 1, cat: "", limit: 100 };
+const D = { q: "", sort: "disc", dir: 1, listedOnly: true, minMV: 10000, minBaz: 2, cat: "", limit: 100 };
+function viewBrowse(isDeals){
+  const st = isDeals ? D : B;
+  const cats = S.cats ? [...new Set(Object.values(S.cats.map))].sort() : [];
+  $("#view").innerHTML = `
+    <div class="panel">
+      <h2>${isDeals ? "💸 Deals — bazaars under market value" : "📋 Browse all items"}</h2>
+      <div class="controls">
+        <input class="f" id="bq" placeholder="Filter by name…" value="${esc(st.q)}" style="flex:1;min-width:180px" />
+        ${cats.length ? `<select class="f" id="bcat"><option value="">All categories</option>${cats.map(c => `<option ${c === st.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>`
+                      : `<span class="small muted" title="Add a Torn API key in settings to enable category filtering">🔒 Categories need API key</span>`}
+        <label>Min MV <input class="f" id="bmv" type="text" inputmode="numeric" value="${st.minMV || ""}" placeholder="0" style="width:100px" /></label>
+        <label>Min bazaars <input class="f" id="bbz" type="number" min="0" value="${st.minBaz}" style="width:70px" /></label>
+        ${isDeals ? "" : `<label><input type="checkbox" id="blisted" ${st.listedOnly ? "checked" : ""}/> Listed only</label>`}
+        <button class="btn sm" onclick="refreshList()">↻ Refresh</button>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th style="width:36px"></th><th style="width:60px"></th>
+          <th class="sort" data-k="item_name">Item</th>
+          <th class="sort num" data-k="lowest_price">Lowest bazaar</th>
+          <th class="sort num" data-k="bazaar_average">Avg bazaar</th>
+          <th class="sort num" data-k="market_price">Market value</th>
+          <th class="sort num" data-k="disc">vs MV</th>
+          <th class="sort num" data-k="total_bazaars">Bazaars</th></tr></thead>
+        <tbody id="btbody"></tbody></table></div>
+      <div id="bmore" style="text-align:center;margin-top:12px"></div>
+    </div>`;
+  const draw = () => {
+    const q = st.q.toLowerCase().trim();
+    let rows = S.items.filter(i =>
+      (!q || i.item_name.toLowerCase().includes(q) || String(i.item_id) === q) &&
+      (!st.listedOnly || i.total_bazaars > 0) && (i.total_bazaars || 0) >= st.minBaz &&
+      (i.market_price || 0) >= st.minMV && (!st.cat || catOf(i.item_id) === st.cat) &&
+      (!isDeals || (i.lowest_price && i.lowest_price < i.market_price)));
+    const val = i => st.sort === "disc" ? (i.lowest_price && i.market_price ? pct(i.lowest_price, i.market_price) : 1e9) : i[st.sort];
+    rows.sort((a, b) => { const x = val(a), y = val(b);
+      if (typeof x === "string") return x.localeCompare(y) * st.dir;
+      return ((x ?? -1e15) - (y ?? -1e15)) * st.dir; });
+    document.querySelectorAll("th.sort").forEach(th => { th.classList.remove("asc", "desc"); if (th.dataset.k === st.sort) th.classList.add(st.dir > 0 ? "asc" : "desc"); });
+    $("#btbody").innerHTML = rows.slice(0, st.limit).map(i => {
+      const w = !!S.watch[i.item_id], d = i.lowest_price ? pct(i.lowest_price, i.market_price) : null;
+      return `<tr class="clickable" data-id="${i.item_id}">
+        <td><button class="star ${w ? "on" : ""}" data-star="${i.item_id}" title="Watch">${w ? "★" : "☆"}</button></td>
+        <td>${imgTag(i.item_id)}</td>
+        <td>${esc(i.item_name)} <span class="muted small">#${i.item_id}${catOf(i.item_id) ? " · " + esc(catOf(i.item_id)) : ""}</span></td>
+        <td class="num ${d != null && d < 0 ? "green" : ""}">${money(i.lowest_price)}</td>
+        <td class="num">${money(i.bazaar_average)}</td>
+        <td class="num muted">${money(i.market_price)}</td>
+        <td class="num">${pctPill(d)}</td>
+        <td class="num">${(i.total_bazaars || 0).toLocaleString()}</td></tr>`;
+    }).join("") || `<tr><td colspan="8" class="empty">No items match these filters.</td></tr>`;
+    $("#bmore").innerHTML = rows.length > st.limit
+      ? `<button class="btn" id="morebtn">Show more (${(rows.length - st.limit).toLocaleString()} remaining)</button>`
+      : `<span class="small muted">${rows.length.toLocaleString()} item${rows.length === 1 ? "" : "s"}</span>`;
+    $("#morebtn")?.addEventListener("click", () => { st.limit += 100; draw(); });
+  };
+  const numVal = s => +String(s).replace(/[^\d.kmb]/gi, "").replace(/([\d.]+)k/i, (_, n) => n * 1e3).replace(/([\d.]+)m/i, (_, n) => n * 1e6).replace(/([\d.]+)b/i, (_, n) => n * 1e9) || 0;
+  $("#bq").addEventListener("input", e => { st.q = e.target.value; st.limit = 100; draw(); });
+  $("#bmv").addEventListener("input", e => { st.minMV = numVal(e.target.value); draw(); });
+  $("#bbz").addEventListener("input", e => { st.minBaz = +e.target.value || 0; draw(); });
+  $("#blisted")?.addEventListener("change", e => { st.listedOnly = e.target.checked; draw(); });
+  $("#bcat")?.addEventListener("change", e => { st.cat = e.target.value; draw(); });
+  document.querySelectorAll("th.sort").forEach(th => th.addEventListener("click", () => {
+    const k = th.dataset.k; if (st.sort === k) st.dir *= -1; else { st.sort = k; st.dir = (k === "item_name" || k === "disc" || k === "lowest_price") ? 1 : -1; } draw(); }));
+  $("#btbody").addEventListener("click", e => {
+    const s = e.target.closest("[data-star]");
+    if (s) { e.stopPropagation(); toggleWatch(+s.dataset.star); draw(); return; }
+    const tr = e.target.closest("tr[data-id]"); if (tr) go("#/item/" + tr.dataset.id);
+  });
+  draw();
+}
+async function refreshList(){ try { await loadList(true); toast("Prices refreshed"); route(); } catch (e) { toast("Refresh failed: " + e.message); } }
+
+/* ============================ Watchlist ============================ */
+function toggleWatch(id){
+  if (S.watch[id]) { delete S.watch[id]; toast("Removed from watchlist"); }
+  else { S.watch[id] = { target: null }; toast("Added to watchlist ⭐"); }
+  saveWatch();
+}
+function viewWatch(){
+  const ids = Object.keys(S.watch).map(Number);
+  const rows = ids.map(id => S.byId.get(id)).filter(Boolean);
+  $("#view").innerHTML = `<div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h2>⭐ Watchlist</h2>
+      <div style="display:flex;gap:8px"><button class="btn sm" onclick="refreshList()">↻ Refresh</button></div></div>
+    <p class="small muted" style="margin-top:0">Set a target price — rows turn green when any bazaar is at or below it. Saved in this browser.</p>
+    ${rows.length ? `<div class="tablewrap"><table><thead><tr><th style="width:36px"></th><th style="width:60px"></th><th>Item</th>
+      <th class="num">Lowest bazaar</th><th class="num">Market value</th><th class="num">vs MV</th><th class="num">Target price</th><th>Status</th></tr></thead>
+      <tbody>${rows.map(i => { const t = S.watch[i.item_id].target, hit = t && i.lowest_price && i.lowest_price <= t;
+        return `<tr class="${hit ? "used" : ""}">
+          <td><button class="star on" onclick="toggleWatch(${i.item_id});viewWatch()">★</button></td>
+          <td>${imgTag(i.item_id)}</td>
+          <td><a href="#/item/${i.item_id}">${esc(i.item_name)}</a> <span class="muted small">(${i.total_bazaars || 0} bazaars)</span></td>
+          <td class="num">${money(i.lowest_price)}</td><td class="num muted">${money(i.market_price)}</td>
+          <td class="num">${pctPill(i.lowest_price ? pct(i.lowest_price, i.market_price) : null)}</td>
+          <td class="num"><input class="tgt" data-tgt="${i.item_id}" value="${t ? Math.round(t).toLocaleString("en-US") : ""}" placeholder="$ target" /></td>
+          <td>${!t ? '<span class="muted small">no target</span>' : hit ? '<span class="pill g">BUY ✓</span>' : `<span class="small muted">${short(i.lowest_price - t)} above</span>`}</td></tr>`; }).join("")}
+      </tbody></table></div>`
+    : `<div class="empty">Your watchlist is empty.<br>Tap ☆ on any item to track its lowest bazaar price.</div>`}
+  </div>`;
+  document.querySelectorAll("[data-tgt]").forEach(inp => inp.addEventListener("change", e => {
+    const v = +e.target.value.replace(/[^\d]/g, ""); S.watch[e.target.dataset.tgt].target = v || null; saveWatch(); viewWatch();
+  }));
+}
+
+/* ============================ Item detail ============================ */
+async function viewItem(id){
+  const base = S.byId.get(id);
+  S.recent = [id, ...S.recent.filter(x => x !== id)].slice(0, 12);
+  localStorage.setItem("tbf_recent", JSON.stringify(S.recent));
+  const v = $("#view");
+  v.innerHTML = `<div class="panel"><div class="itemhead"><div class="img">${imgTag(id, "")}</div><div><h1>${esc(base?.item_name || "Item #" + id)}</h1><div class="muted">Loading bazaar listings…</div></div></div><div class="spinner"></div></div>`;
+  let data;
+  try { data = await w3b("/" + id); }
+  catch (e) { v.innerHTML = `<div class="panel empty">⚠️ Failed to load listings (${esc(e.message)}). <button class="btn" onclick="route()">Retry</button></div>`; return; }
+  if (location.hash !== "#/item/" + id) return;
+  const st = { data, minQty: 1, maxPrice: 0, buy: 1, hideWeapons: false, market: null, marketErr: null, updated: Date.now() };
+  renderItem(id, st);
+  if (S.key) loadMarket(id, st);
+  if (S.autoref) S.timer = setInterval(async () => {
+    if (location.hash !== "#/item/" + id) return clearInterval(S.timer);
+    try { st.data = await w3b("/" + id); st.updated = Date.now(); renderItem(id, st, true); if (S.key) loadMarket(id, st); } catch {}
+  }, 30000);
+}
+async function loadMarket(id, st){
+  try { const d = await torn(`/market/${id}/itemmarket?offset=0`); st.market = d.itemmarket; st.marketErr = null; }
+  catch (e) { st.marketErr = e.message; }
+  if (location.hash === "#/item/" + id) renderMarket(id, st);
+}
+function fill(listings, n){
+  let left = n, cost = 0, used = new Map(), sellers = 0;
+  for (const l of listings) { if (left <= 0) break; const take = Math.min(left, l.quantity); used.set(l, take); cost += take * l.price; left -= take; sellers++; }
+  return { cost, got: n - left, short: left, used, sellers };
+}
+function renderItem(id, st, keepFocus){
+  const d = st.data, mv = d.market_price, info = S.byId.get(id) || {};
+  const all = (d.listings || []).slice().sort((a, b) => a.price - b.price);
+  const L = all.filter(l => l.quantity >= st.minQty && (!st.maxPrice || l.price <= st.maxPrice));
+  const totalQty = all.reduce((s, l) => s + l.quantity, 0);
+  const lowest = all[0]?.price, isUnique = all.some(l => l.uid);
+  const f = fill(L, Math.max(1, st.buy | 0));
+  const w = !!S.watch[id];
+  const focused = document.activeElement?.id;
+  $("#view").innerHTML = `
+    <div class="panel">
+      <div class="itemhead">
+        <div class="img">${imgTag(id, "")}</div>
+        <div style="flex:1;min-width:220px">
+          <h1>${esc(d.item_name)} <button class="star ${w ? "on" : ""}" id="wstar" title="Watchlist">${w ? "★" : "☆"}</button></h1>
+          <div class="muted small">Item #${id}${catOf(id) ? " · " + esc(catOf(id)) : ""} · <span class="status" style="display:inline-flex"><span class="dot ${S.autoref ? "live" : ""}"></span> updated ${ago(st.updated / 1000)}${S.autoref ? " · auto-refresh on" : ""}</span></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="reload">↻ Refresh</button>
+          <a class="btn" href="${marketUrl(id)}" target="_blank" rel="noopener">Item Market ↗</a>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Lowest bazaar</div><div class="v green">${money(lowest)}</div><div class="s">${lowest ? pctPill(pct(lowest, mv)) + " vs market value" : "No listings"}</div></div>
+        <div class="stat"><div class="k">Market value</div><div class="v">${money(mv)}</div><div class="s">Torn's average price</div></div>
+        <div class="stat"><div class="k">Bazaar average</div><div class="v">${money(d.bazaar_average)}</div><div class="s">${d.bazaar_average && mv ? pctPill(pct(d.bazaar_average, mv)) : ""}</div></div>
+        <div class="stat"><div class="k">Supply shown</div><div class="v">${totalQty.toLocaleString()}</div><div class="s">in ${all.length}${all.length >= 100 ? "+" : ""} cheapest bazaars${info.total_bazaars ? ` (of ${info.total_bazaars.toLocaleString()})` : ""}</div></div>
+        <div class="stat" id="imstat"><div class="k">Item Market low</div><div class="v muted">${S.key ? "…" : "🔒"}</div><div class="s">${S.key ? "loading" : '<a href="#" onclick="openSettings();return false">add API key</a>'}</div></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel" style="min-width:0">
+        <div class="controls" style="justify-content:space-between">
+          <h2 style="margin:0">Bazaar listings <span class="muted small">(${L.length}${L.length !== all.length ? " of " + all.length : ""})</span></h2>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <label>Min qty <input class="f" id="fqty" type="number" min="1" value="${st.minQty}" style="width:70px" /></label>
+            <label>Max price <input class="f" id="fmax" type="text" inputmode="numeric" value="${st.maxPrice ? st.maxPrice.toLocaleString("en-US") : ""}" placeholder="any" style="width:110px" /></label>
+          </div>
+        </div>
+        ${L.length ? `<div class="tablewrap"><table>
+          <thead><tr><th>#</th><th>Seller</th><th class="num">Qty</th><th class="num">Price</th><th class="num">vs MV</th><th class="num">Total</th><th>Updated</th><th></th></tr></thead>
+          <tbody>${L.map((l, k) => { const u = f.used.get(l);
+            return `<tr class="${u ? (u === l.quantity ? "used" : "partial") : ""}">
+              <td class="muted">${k + 1}</td>
+              <td><a href="${profileUrl(l.player_id)}" target="_blank" rel="noopener">${esc(l.player_name)}</a> <span class="muted small">[${l.player_id}]</span>${l.uid ? ` <span class="muted small" title="Unique item UID">uid ${esc(l.uid)}</span>` : ""}</td>
+              <td class="num">${l.quantity.toLocaleString()}${u && u !== l.quantity ? `<div class="small amber">buy ${u}</div>` : ""}</td>
+              <td class="num"><b>${money(l.price)}</b></td>
+              <td class="num">${pctPill(pct(l.price, mv))}</td>
+              <td class="num muted">${short(l.price * l.quantity)}</td>
+              <td class="small muted" title="Last checked ${ago(l.last_checked)}">${ago(l.content_updated)}</td>
+              <td><a class="btn sm primary" href="${bazaarUrl(l.player_id)}" target="_blank" rel="noopener">Bazaar ↗</a></td></tr>`; }).join("")}
+          </tbody></table></div>`
+        : `<div class="empty">${all.length ? "No listings match your filters." : "Nobody has this item listed in a tracked bazaar right now."}</div>`}
+        <div class="small muted" style="margin-top:8px">Showing the cheapest ${all.length} listings tracked by TornW3B. Prices can change quickly — always double-check in the bazaar before buying.</div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h3>🛒 Bulk buy calculator</h3>
+          <label class="small muted">How many do you want?</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <input class="f" id="buyn" type="number" min="1" value="${st.buy}" style="flex:1" />
+            ${[10, 50, 100].map(n => `<button class="btn sm" data-buy="${n}">${n}</button>`).join("")}
+          </div>
+          <div class="calcout">
+            <div><span class="muted">Total cost</span><b class="green">${money(f.cost)}</b></div>
+            <div><span class="muted">Avg per item</span><span>${f.got ? money(f.cost / f.got) : "—"}</span></div>
+            <div><span class="muted">Bazaars to visit</span><span>${f.sellers}</span></div>
+            <div><span class="muted">vs market value</span><span>${f.got && mv ? pctPill(pct(f.cost / f.got, mv)) + " " + (mv * f.got - f.cost >= 0 ? `<span class="green small">save ${short(mv * f.got - f.cost)}</span>` : `<span class="red small">+${short(f.cost - mv * f.got)}</span>`) : "—"}</span></div>
+            ${f.short ? `<div class="amber small">⚠ Only ${f.got.toLocaleString()} available in listed bazaars</div>` : ""}
+          </div>
+          <div class="small muted" style="margin-top:6px">Highlighted rows show which bazaars to buy from.</div>
+        </div>
+
+        <div class="panel">
+          <h3>🏷️ Selling? Price suggestions</h3>
+          ${lowest ? `
+          <div class="calcout">
+            <div><span class="muted">Undercut lowest ($1)</span><span><b>${money(lowest - 1)}</b> <button class="btn sm" onclick="copy(${lowest - 1},'${money(lowest - 1)}')">Copy</button></span></div>
+            <div><span class="muted">Match market value</span><span>${money(mv)} <button class="btn sm" onclick="copy(${Math.round(mv || 0)},'${money(mv)}')">Copy</button></span></div>
+            <div><span class="muted">MV − 1%</span><span>${money(mv * .99)} <button class="btn sm" onclick="copy(${Math.round((mv || 0) * .99)},'${money(mv * .99)}')">Copy</button></span></div>
+          </div>
+          <div class="small muted" style="margin-top:6px">Item Market sales pay a 5% fee — bazaar sales don't.</div>` : `<div class="muted small">No competing bazaars — you set the price! Market value is ${money(mv)}.</div>`}
+        </div>
+
+        <div class="panel" id="impanel">
+          <h3>🏪 Item Market (official)</h3>
+          <div id="imbody">${S.key ? `<div class="spinner" style="margin:10px auto"></div>` : `<div class="small muted">Add a Torn API key in <a href="#" onclick="openSettings();return false">settings</a> to compare with the cheapest Item Market listings.</div>`}</div>
+        </div>
+      </div>
+    </div>`;
+
+  if (st.market || st.marketErr) renderMarket(id, st);
+  const numVal = s => +String(s).replace(/[^\d]/g, "") || 0;
+  $("#wstar").onclick = () => { toggleWatch(id); renderItem(id, st); };
+  $("#reload").onclick = async () => { $("#reload").textContent = "…"; try { st.data = await w3b("/" + id); st.updated = Date.now(); if (S.key) loadMarket(id, st); } catch (e) { toast("Refresh failed"); } renderItem(id, st); };
+  $("#fqty").onchange = e => { st.minQty = Math.max(1, +e.target.value || 1); renderItem(id, st); };
+  $("#fmax").onchange = e => { st.maxPrice = numVal(e.target.value); renderItem(id, st); };
+  $("#buyn").oninput = e => { st.buy = Math.max(1, +e.target.value || 1); clearTimeout(st._t); st._t = setTimeout(() => renderItem(id, st), 250); };
+  document.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => { st.buy = +b.dataset.buy; renderItem(id, st); });
+  if (focused === "buyn" && keepFocus !== false) { const b = $("#buyn"); b.focus(); try { const v = b.value; b.value = ""; b.value = v; } catch {} }
+}
+function renderMarket(id, st){
+  const body = $("#imbody"), stat = $("#imstat"); if (!body) return;
+  if (st.marketErr) { body.innerHTML = `<div class="small red">Torn API: ${esc(st.marketErr)}</div>`; if (stat) stat.querySelector(".s").textContent = "error"; return; }
+  const m = st.market; if (!m) return;
+  const ls = (m.listings || []).slice().sort((a, b) => a.price - b.price);
+  const low = ls[0]?.price, bz = (st.data.listings || []).reduce((mn, l) => Math.min(mn, l.price), Infinity);
+  if (stat) stat.innerHTML = `<div class="k">Item Market low</div><div class="v">${money(low)}</div><div class="s">${low && isFinite(bz) ? (bz < low ? `<span class="green">bazaar ${short(low - bz)} cheaper</span>` : bz > low ? `<span class="amber">market ${short(bz - low)} cheaper</span>` : "same price") : ""}</div>`;
+  body.innerHTML = ls.length ? `<table><thead><tr><th class="num">Qty</th><th class="num">Price</th><th class="num">vs MV</th></tr></thead><tbody>
+    ${ls.slice(0, 8).map(l => `<tr><td class="num">${l.amount.toLocaleString()}</td><td class="num">${money(l.price)}</td><td class="num">${pctPill(pct(l.price, st.data.market_price))}</td></tr>`).join("")}
+    </tbody></table><div class="small muted" style="margin-top:6px">Cached ${ago(m.cache_timestamp)} · <a href="${marketUrl(id)}" target="_blank" rel="noopener">open market ↗</a></div>`
+    : `<div class="small muted">No Item Market listings.</div>`;
+}
+
+/* ============================ Settings ============================ */
+function openSettings(){ $("#apikey").value = S.key; $("#autoref").checked = S.autoref; $("#keystatus").textContent = ""; $("#settings").classList.add("show"); }
+function closeSettings(){ $("#settings").classList.remove("show"); }
+async function saveSettings(){
+  const k = $("#apikey").value.trim();
+  S.autoref = $("#autoref").checked; localStorage.setItem("tbf_autoref", S.autoref ? "1" : "0");
+  if (k && k !== S.key) {
+    $("#keystatus").innerHTML = `<span class="muted">Checking key…</span>`;
+    const old = S.key; S.key = k;
+    try { await torn("/market/206/itemmarket?offset=0"); }
+    catch (e) { S.key = old; $("#keystatus").innerHTML = `<span class="red">Key rejected: ${esc(e.message)}</span>`; return; }
+    localStorage.setItem("tbf_key", k); S.cats = null; loadCats().then(() => route());
+  } else if (!k) { S.key = ""; localStorage.removeItem("tbf_key"); }
+  closeSettings(); toast("Settings saved"); route();
+}
+$("#settings").addEventListener("click", e => { if (e.target.id === "settings") closeSettings(); });
+
+/* ============================ Boot ============================ */
+loadCats();
+route();
+</script>
+</body>
+</html>
