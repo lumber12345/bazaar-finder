@@ -9,6 +9,26 @@ npm start             # or: node server.js (Node 18+, no dependencies)
 ```
 `index.html` also works by itself if you open it in a browser. It falls back to calling weav3r.dev directly.
 
+## Deploy to Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/lumber12345/bazaar-finder)
+
+**Option A: Blueprint (one click).** Click the button above, or in Render go to **New → Blueprint** and pick this repo. `render.yaml` sets up everything.
+
+**Option B: set up a Web Service by hand.** Go to **New → Web Service** and connect this repo, then use:
+
+| Setting | Value |
+|---|---|
+| Runtime | Node |
+| Build Command | `npm install` |
+| Start Command | `npm start` |
+| Health Check Path | `/healthz` |
+| Instance Type | Free works fine |
+
+You don't need to set any environment variables. Render provides `PORT` automatically, and the server listens on `0.0.0.0`.
+
+> On the free plan, the service goes to sleep after about 15 minutes with no visitors. The first page load after that takes around 30 to 50 seconds while it starts back up.
+
 ## Features
 - Instant fuzzy item search with autocomplete (by name or item ID, press `/` to focus)
 - Item page showing the cheapest bazaar listings, the % difference from market value, how long ago each listing was updated, and one-click links to each bazaar

@@ -1,6 +1,6 @@
 // Torn Bazaar Finder - tiny zero-dependency server
 // Serves the app and proxies/caches bazaar data from TornW3B (weav3r.dev).
-// Run: node server.js   (PORT env var optional, default 3000)
+// Run: node server.js   (PORT env var optional, default 3000 — Render sets PORT automatically)
 
 const http = require("http");
 const fs = require("fs");
@@ -46,6 +46,8 @@ const server = http.createServer(async (req, res) => {
     res.end(body);
   };
 
+  if (url.pathname === "/healthz") return send(200, "application/json", JSON.stringify({ ok: true, uptime: process.uptime() }));
+
   if (url.pathname === "/api/marketplace") {
     const e = await upstream(UPSTREAM, LIST_TTL);
     return send(e.status, "application/json", e.body);
@@ -63,3 +65,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => console.log(`Torn Bazaar Finder running on http://0.0.0.0:${PORT}`));
+
+// Graceful shutdown (Render sends SIGTERM on deploys/restarts)
+for (const sig of ["SIGTERM", "SIGINT"]) {
+  process.on(sig, () => {
+    console.log(`${sig} received, shutting down`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 5000).unref();
+  });
+}
